@@ -157,6 +157,10 @@ defmodule TraceCollector do
     GenServer.start(CollectorServer, [call_pattern, rexbug_opts], name: @trace_collector)
   end
 
+  defp add_return_opt(trace_pattern) when trace_pattern in [:send, :receive] do
+    throw({:error, :tracing_messages_not_supported})
+  end
+
   defp add_return_opt(call_pattern) when is_binary(call_pattern) do
     ## Force `return` option
     case String.split(call_pattern, ~r{::}, trim: true, include_captures: true) do
