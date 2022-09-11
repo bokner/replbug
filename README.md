@@ -19,7 +19,7 @@ end
 
 The Erlang Trace BIFs allow to trace Erlang code on live systems.
 
-[Rexbug](https://github.com/nietaki/rexbug) provides the interface that allows to display and/or write to external files the trace messages emitted by Erlang VM. In many cases, this would be sufficient for the purposes of debugging the code. However, if the size and/or number of tracing messages is large, it becomes more difficult to make sense of what's going on.
+[Rexbug](https://github.com/nietaki/rexbug) displays and/or writes to external files in human-readable format the trace messages emitted by Erlang VM. In many cases, this would be sufficient for the purposes of debugging the code. However, if the size and/or number of tracing messages is large, it becomes more difficult to make sense of what's going on just by visually checking the tracing output.
 
 To illustrate the issue, let's add Replbug dependency to our Phoenix server project:
 ```elixir
@@ -33,7 +33,7 @@ defp deps do
 
 and start a Phoenix server with the LiveDashboard enabled.
 
-Now start tracing `Phoenix.LiveView.Plug.call/2` in IEx using Rexbug:
+Now start tracing `Phoenix.LiveView.Plug.call/2` in IEx **using Rexbug**:
 
 ```elixir
 # Start the tracing for Phoenix.LiveView.Plug.call/2
@@ -45,7 +45,7 @@ We'll see a lot of output in your IEx shell, which is pretty hard to discern due
 
 ## Solution 
 
-Replbug preserves all functionality of Rexbug. Additionally, it allows to materialize trace records as variables that we could inspect and experiment with the collected traces in IEx shell:
+Replbug preserves all functionality of Rexbug. Additionally, it allows to materialize trace records as variables that we could inspect and experiment with the collected traces in IEx shell. Let's **use Replbug** this time to trace the same function:
 
 ```elixir
 # Make sure to close Rexbug session
