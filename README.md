@@ -41,7 +41,9 @@ Then hit http://localhost:4000/dashboard or whatever link your LiveDashboard is 
 
 We'll see a lot of output in your IEx shell, which is pretty hard to discern due to the size and truncation caused by pretty-printing.
 
-Replbug does what Rexbug does, but additionally, we could pull the traces to IEx and materialize it as a variable that we could inspect and experiment on:
+## Solution 
+
+Replbug preserves all functionality of Rexbug. Additionally, it allows to materialize trace records as variables that we could inspect and experiment with in IEx shell:
 
 ```elixir
 # Make sure to close Rexbug session
@@ -89,7 +91,15 @@ true
 iex(28) > return.status
 302
 
-'''
+```
+
+## Status
+
+As of now, Replbug only supports tracing of function calls.
+Support for tracing of inter-process messages is planned for upcoming versions.
+
+
+
 
 
 
