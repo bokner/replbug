@@ -95,7 +95,7 @@ defmodule Replbug do
   ### Get the call durations for DataTime.utc_now/0 :
   iex(6)> calls |> Map.get({DateTime, :utc_now, 0}) |> Enum.map(& &1.duration)
   [35, 14, 12, 12]
-  ### Replay calls for DateTime.utc_now/0 :
+  ### Replay calls for DateTime.utc_now/0 (use replay/1 with caution in prod!):
   iex(7)> calls |> Map.get({DateTime, :utc_now, 0}) |> Enum.map(&Replbug.replay/1)
   [~U[2022-08-31 21:02:02.397846Z], ~U[2022-08-31 21:02:02.397857Z],
    ~U[2022-08-31 21:02:02.397859Z], ~U[2022-08-31 21:02:02.397860Z]]
@@ -147,6 +147,13 @@ defmodule Replbug do
     end)
   end
 
+  @doc """
+  Repeat the call with the same arguments, for instance, after you've applied the changes to the code and reloaded the module.
+  Use replay/1 with caution in prod!
+  Also, it may not work as expected due to changes happened in between the initial call and the time of replay.
+  """
+  @spec replay(%{:args => list, :function => atom, :module => atom | tuple, optional(any) => any}) ::
+          any
   def replay(%{function: f, module: m, args: a} = _call_record) do
     apply(m, f, a)
   end
