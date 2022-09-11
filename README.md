@@ -41,7 +41,7 @@ iex(1)> Rexbug.start("Phoenix.LiveView.Plug.call/2 :: return", time: 60_000, msg
 ```
 Then hit http://localhost:4000/dashboard or whatever link your LiveDashboard is configured for. 
 
-We'll see a lot of output in your IEx shell, which is pretty hard to discern due to the size and truncation caused by pretty-printing.
+We'll see a lot of output in your IEx shell, which is pretty hard to comprehend due to it's size and truncations caused by pretty-printing etc.
 
 ## Solution 
 
