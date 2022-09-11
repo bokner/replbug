@@ -114,7 +114,7 @@ defmodule Replbug do
       ## Call preconfigured print_fun, if any
       preconfigured_print_fun && preconfigured_print_fun.(trace_record)
       pid = Process.whereis(@trace_collector)
-      pid && send(pid, {:trace, parse_call_trace(trace_record)})
+      pid && send(pid, {:trace, parse_trace(trace_record)})
     end
 
     call_pattern
@@ -156,7 +156,8 @@ defmodule Replbug do
   end
 
   defp add_return_opt(trace_pattern) when trace_pattern in [:send, :receive] do
-    throw({:error, :tracing_messages_not_supported})
+    # throw({:error, :tracing_messages_not_supported})
+    trace_pattern
   end
 
   defp add_return_opt(call_pattern) when is_binary(call_pattern) do
@@ -175,7 +176,7 @@ defmodule Replbug do
     Enum.map(call_pattern_list, fn pattern -> add_return_opt(pattern) end)
   end
 
-  defp parse_call_trace(trace_record) do
+  defp parse_trace(trace_record) do
     trace_record
     |> Rexbug.Printing.from_erl()
     |> extract_trace_data()
@@ -216,6 +217,13 @@ defmodule Replbug do
       caller_pid: caller_pid,
       return_timestamp: to_time(rexbug_time)
     }
+  end
+
+  defp extract_trace_data(%Rexbug.Printing.Send{}) do
+  end
+
+  defp extract_trace_data(%Rexbug.Printing.Receive{}) do
+    %{trace_kind: :receive}
   end
 
   defp to_time(%Rexbug.Printing.Timestamp{hours: h, minutes: m, seconds: s, us: us}) do
@@ -333,6 +341,12 @@ defmodule Replbug.Server do
         }
       end)
     )
+  end
+
+  ## We curently do not store message traces.
+  ## TODO: handle message traces
+  defp store_trace_message(_send_receive_msg, state) do
+    state
   end
 
   defp call_duration(return_rec, call_rec) do

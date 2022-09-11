@@ -24,10 +24,11 @@ defmodule Replbug.MixProject do
   end
 
   defp description() do
-      """
-      Replbug is an addition to Rexbug that allows to inspect Erlang VM traces as variables in IEx
-      """
+    """
+    Replbug is an addition to Rexbug that allows to inspect Erlang VM traces as variables in IEx
+    """
   end
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
