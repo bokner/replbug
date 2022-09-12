@@ -2,7 +2,7 @@ defmodule ReplbugTest do
   use ExUnit.Case, async: false
 
   setup do
-    on_exit(fn -> Replbug.stop end)
+    on_exit(fn -> Replbug.stop() end)
   end
 
   test "Replbug functionality" do
@@ -33,12 +33,18 @@ defmodule ReplbugTest do
     timeout = 500
     num_calls = 3
     my_pid = self()
-    {:ok, _collector_pid} = Replbug.start(["DateTime.utc_now/0", :send, :receive], procs: [my_pid], time: timeout, msgs: 10000)
-    send my_pid, :test_msg
-    _returns = Enum.map(1..num_calls, fn _i -> DateTime.utc_now end)
+
+    {:ok, _collector_pid} =
+      Replbug.start(["DateTime.utc_now/0", :send, :receive],
+        procs: [my_pid],
+        time: timeout,
+        msgs: 10000
+      )
+
+    send(my_pid, :test_msg)
+    _returns = Enum.map(1..num_calls, fn _i -> DateTime.utc_now() end)
     :timer.sleep(2 * timeout)
     calls = Replbug.stop() |> Replbug.calls()
     assert length(Map.get(calls, {DateTime, :utc_now, 0})) == num_calls
   end
-
 end
