@@ -105,6 +105,8 @@ defmodule Replbug do
 
   @trace_collector :trace_collector
 
+  @spec start(:receive | :send | binary | maybe_improper_list, keyword) ::
+          :ignore | {:error, any} | {:ok, pid}
   def start(call_pattern, opts \\ []) do
     # Get preconfigured print_fun (either default one, or specified by the caller)
     preconfigured_print_fun =
@@ -122,6 +124,7 @@ defmodule Replbug do
     |> create_call_collector(Keyword.put(opts, :print_fun, print_fun))
   end
 
+  @spec stop :: any
   def stop do
     Rexbug.stop()
 
@@ -134,6 +137,7 @@ defmodule Replbug do
     Map.keys(trace)
   end
 
+  @spec calls(map) :: map
   @doc """
   Group the trace by function calls (MFA).
   """
@@ -244,6 +248,8 @@ defmodule Replbug.Server do
   require Logger
   # Callbacks
   @impl true
+  @spec init([:receive | :send | binary | [:receive | :send | binary | {atom, any}], ...]) ::
+          {:ok, %{traces: %{}}} | {:stop, {atom | integer, any}}
   def init([call_pattern, rexbug_opts] = _args) do
     Process.flag(:trap_exit, true)
 
@@ -259,6 +265,9 @@ defmodule Replbug.Server do
   end
 
   @impl true
+  @spec handle_call(any, any, any) ::
+          {:reply, {:unknown_message, any}, any}
+          | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
     {:stop, :normal, calls_by_pid(state.traces), Map.put(state, :traces, Map.new())}
   end
@@ -268,6 +277,7 @@ defmodule Replbug.Server do
   end
 
   @impl true
+  @spec handle_cast(any, any) :: {:noreply, any}
   def handle_cast(_cast_msg, state) do
     {:noreply, state}
   end
