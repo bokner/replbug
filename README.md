@@ -19,7 +19,7 @@ end
 
 The Erlang Trace BIFs allow to trace Erlang code on live systems.
 
-[Rexbug](https://github.com/nietaki/rexbug) displays and/or writes to external files in human-readable format the trace messages emitted by Erlang VM. In many cases, this would be sufficient for the purposes of debugging the code. However, if the size and/or number of tracing messages is large, it becomes more difficult to make sense of what's going on just by visually checking the tracing output.
+[Rexbug](https://github.com/nietaki/rexbug) displays and/or writes to external files the trace messages emitted by Erlang VM in human-readable format. In many cases, this would be sufficient for the purposes of debugging the code. However, if the size and/or number of tracing messages is large, it becomes more difficult to make sense of what's going on just by visually checking the tracing output.
 
 To illustrate the issue, let's add Replbug dependency to our Phoenix server project:
 ```elixir
