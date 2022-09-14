@@ -10,7 +10,7 @@ by adding `replbug` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:replbug, "~> 0.1.0"}
+    {:replbug, "~> 0.1"}
   ]
 end
 ```
@@ -26,7 +26,7 @@ To illustrate the issue, let's add Replbug dependency to our Phoenix server proj
 defp deps do
     [
       ### Our deps...
-      {:replbug, "~> 0.1.0"}
+      {:replbug, "~> 0.1"}
     ]
   end
 ```
