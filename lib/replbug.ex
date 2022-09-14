@@ -30,7 +30,7 @@ defmodule Replbug do
     |> create_call_collector(Keyword.put(opts, :print_fun, print_fun))
   end
 
-  @spec stop :: map()
+  @spec stop :: %{pid() => list(any())}
   @doc """
     Stop the collection and get the traces as a map of pid => trace_records
   """
@@ -46,7 +46,7 @@ defmodule Replbug do
     Map.keys(trace)
   end
 
-  @spec calls(traces :: map()) :: map()
+  @spec calls(traces :: %{pid() => list(any())}) :: %{mfa() => list(any())}
   @doc """
   Group the trace by function calls (MFA).
   """

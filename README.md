@@ -56,7 +56,7 @@ iex(3)> Replbug.start("Phoenix.LiveView.Plug.call/2 :: return", time: 60_000, ms
 
 Hit http://localhost:4000/dashboard again.
 
-The same amount of output, as with using Rexbug, but now we can get the traces into Iex and inspect them programmatically:
+The same amount of output, as with using Rexbug, but now we can get the traces into IEx and inspect them programmatically:
 
 ```elixir
 iex(3)> traces = Replbug.stop
