@@ -296,4 +296,20 @@ defmodule Replbug.Utils do
       |> Enum.sum()
     end)
   end
+
+  @spec collect_traces(:receive | :send | binary | maybe_improper_list, integer, keyword) :: %{
+          optional(pid) => list
+        }
+  @doc """
+        Collect the traces over the `time_interval` duration.
+        Note: it's a blocking call, use with care
+  """
+  def collect_traces(call_pattern, time_interval, opts \\ []) do
+    case Replbug.start(call_pattern, Keyword.put(opts, :time, time_interval)) do
+      {:ok, _pid} ->
+        Process.sleep(time_interval + 100)
+        Replbug.stop()
+      error -> error
+    end
+  end
 end
