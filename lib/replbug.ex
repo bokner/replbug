@@ -279,3 +279,21 @@ defmodule Replbug.Server do
     Time.diff(return_rec.return_timestamp, call_rec.call_timestamp, :microsecond)
   end
 end
+
+defmodule Replbug.Utils do
+  def call_stats(calls, stats_fun) do
+    Enum.map(calls, fn {mfa, mfa_calls} -> {mfa, stats_fun.(mfa_calls)} end)
+  end
+
+  def call_count(calls) do
+    call_stats(calls, &length/1)
+  end
+
+  def call_durations(calls) do
+    call_stats(calls, fn mfa_calls ->
+      mfa_calls
+      |> Enum.map(& &1.duration)
+      |> Enum.sum()
+    end)
+  end
+end
