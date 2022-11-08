@@ -281,6 +281,10 @@ defmodule Replbug.Server do
 end
 
 defmodule Replbug.Utils do
+  def mfas(calls) do
+    Map.keys(calls)
+  end
+
   def call_stats(calls, stats_fun) do
     Enum.map(calls, fn {mfa, mfa_calls} -> {mfa, stats_fun.(mfa_calls)} end)
   end
@@ -297,6 +301,14 @@ defmodule Replbug.Utils do
     end)
   end
 
+  def arg_sizes(call) do
+    Enum.map(call.args, fn arg -> :erlang_term.byte_size(arg) end)
+  end
+
+  def return_size(call) do
+    :erlang_term.byte_size(call.return)
+  end
+
   @spec collect_traces(:receive | :send | binary | maybe_improper_list, integer, keyword) :: %{
           optional(pid) => list
         }
@@ -309,7 +321,9 @@ defmodule Replbug.Utils do
       {:ok, _pid} ->
         Process.sleep(time_interval + 100)
         Replbug.stop()
-      error -> error
+
+      error ->
+        error
     end
   end
 end

@@ -4,7 +4,7 @@ defmodule Replbug.MixProject do
   def project do
     [
       app: :replbug,
-      version: "0.1.3",
+      version: "0.1.5",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -51,7 +51,8 @@ defmodule Replbug.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:rexbug, "~> 1.0"}
+      {:rexbug, "~> 1.0"},
+      {:erlang_term, "~> 2.0"}
     ]
   end
 end
