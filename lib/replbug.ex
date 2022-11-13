@@ -13,7 +13,7 @@ defmodule Replbug do
 
   @spec start(:receive | :send | binary | maybe_improper_list, keyword) ::
           :ignore | {:error, any} | {:ok, pid}
-  def start(call_pattern, opts \\ []) do
+  def start(trace_pattern, opts \\ []) do
     # Get preconfigured print_fun (either default one, or specified by the caller)
     preconfigured_print_fun =
       Keyword.get(opts, :print_fun, fn t -> Rexbug.Printing.print_with_opts(t, opts) end)
@@ -25,7 +25,7 @@ defmodule Replbug do
       pid && send(pid, {:trace, parse_trace(trace_record)})
     end
 
-    call_pattern
+    trace_pattern
     |> add_return_opt()
     |> create_call_collector(Keyword.put(opts, :print_fun, print_fun))
   end
@@ -75,19 +75,20 @@ defmodule Replbug do
     GenServer.start(CollectorServer, [call_pattern, rexbug_opts], name: @trace_collector)
   end
 
+  ## Tracing for messages
   defp add_return_opt(trace_pattern) when trace_pattern in [:send, :receive] do
-    # throw({:error, :tracing_messages_not_supported})
     trace_pattern
   end
 
-  defp add_return_opt(call_pattern) when is_binary(call_pattern) do
+  ## Tracing for fun calls
+  defp add_return_opt(trace_pattern) when is_binary(trace_pattern) do
     ## Force `return` option
-    case String.split(call_pattern, ~r{::}, trim: true, include_captures: true) do
+    case String.split(trace_pattern, ~r{::}, trim: true, include_captures: true) do
       [no_opts_call] ->
         "#{no_opts_call} :: return"
 
       [call, "::", opts] ->
-        (String.contains?(opts, "return") && call_pattern) ||
+        (String.contains?(opts, "return") && trace_pattern) ||
           "#{call} :: return,#{String.trim(opts)}"
     end
   end
@@ -159,10 +160,10 @@ defmodule Replbug.Server do
   @impl true
   @spec init([:receive | :send | binary | [:receive | :send | binary | {atom, any}], ...]) ::
           {:ok, %{traces: %{}}} | {:stop, {atom | integer, any}}
-  def init([call_pattern, rexbug_opts] = _args) do
+  def init([trace_pattern, rexbug_opts] = _args) do
     Process.flag(:trap_exit, true)
 
-    case start_rexbug(call_pattern, rexbug_opts) do
+    case start_rexbug(trace_pattern, rexbug_opts) do
       :ok ->
         :erlang.monitor(:process, Process.whereis(:redbug))
         ## The state is a map of {process_pid, call_traces},
@@ -205,8 +206,8 @@ defmodule Replbug.Server do
     {:noreply, state}
   end
 
-  defp start_rexbug(call_pattern, opts) do
-    case Rexbug.start(call_pattern, opts) do
+  defp start_rexbug(trace_pattern, opts) do
+    case Rexbug.start(trace_pattern, opts) do
       {proc_count, func_count} when is_integer(proc_count) and is_integer(func_count) ->
         :ok
 
