@@ -9,6 +9,8 @@ defmodule Replbug do
   """
   alias Replbug.Server, as: CollectorServer
 
+  require Logger
+
   @trace_collector :trace_collector
 
   @spec start(:receive | :send | binary | maybe_improper_list, keyword) ::
@@ -140,11 +142,25 @@ defmodule Replbug do
     }
   end
 
-  defp extract_trace_data(%Rexbug.Printing.Send{}) do
+  defp extract_trace_data(%Rexbug.Printing.Send{} = send_msg) do
+    %{
+      trace_kind: :send,
+      msg: send_msg.msg,
+      sender_pid: send_msg.from_pid,
+      sender_mfa: send_msg.from_mfa,
+      receiver_pid: send_msg.to_pid,
+      timestamp: to_time(send_msg.time)
+    }
   end
 
-  defp extract_trace_data(%Rexbug.Printing.Receive{}) do
-    %{trace_kind: :receive}
+  defp extract_trace_data(%Rexbug.Printing.Receive{} = receive_msg) do
+    %{
+      trace_kind: :receive,
+      msg: receive_msg.msg,
+      receiver_pid: receive_msg.to_pid,
+      receiver_mfa: receive_msg.to_mfa,
+      timestamp: to_time(receive_msg.time)
+    }
   end
 
   defp to_time(%Rexbug.Printing.Timestamp{hours: h, minutes: m, seconds: s, us: us}) do
