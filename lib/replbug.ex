@@ -303,19 +303,35 @@ defmodule Replbug.Utils do
   end
 
   def call_stats(calls, stats_fun) do
-    Enum.map(calls, fn {mfa, mfa_calls} -> {mfa, stats_fun.(mfa_calls)} end)
+    Map.new(calls, fn {mfa, mfa_calls} -> {mfa, stats_fun.(mfa_calls)} end)
   end
 
-  def call_count(calls) do
+  def counts(calls) do
     call_stats(calls, &length/1)
   end
 
-  def call_durations(calls) do
+  def total_durations(calls) do
+    call_stats(calls, &total_duration/1)
+  end
+
+  def max_durations(calls) do
+    call_stats(calls, &Enum.max/1)
+  end
+
+  def min_durations(calls) do
+    call_stats(calls, &Enum.min/1)
+  end
+
+  def average_durations(calls) do
     call_stats(calls, fn mfa_calls ->
       mfa_calls
-      |> Enum.map(& &1.duration)
-      |> Enum.sum()
+      |> total_duration()
+      |> Kernel./(length(mfa_calls))
     end)
+  end
+
+  defp total_duration(calls) do
+    Enum.reduce(calls, 0, fn call, acc -> acc + call.duration end)
   end
 
   def arg_sizes(call) do

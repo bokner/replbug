@@ -1,6 +1,8 @@
 defmodule ReplbugTest do
   use ExUnit.Case, async: false
 
+  alias Replbug.TestUtils
+
   setup do
     on_exit(fn -> Replbug.stop() end)
   end
@@ -46,5 +48,52 @@ defmodule ReplbugTest do
     :timer.sleep(2 * timeout)
     calls = Replbug.stop() |> Replbug.calls()
     assert length(Map.get(calls, {DateTime, :utc_now, 0})) == num_calls
+  end
+
+  test "Verifies call stats" do
+    times = [100, 100, 500, 250, 50, 100, 300]
+
+    timer_tcs =
+      Enum.map(times, fn time ->
+        {tc, :ok} = :timer.tc(fn -> TestUtils.run_for_time(time) end)
+        tc
+      end)
+
+    IO.inspect(timer_tcs)
+    mfa = {Replbug.TestUtils, :run_for_time, 1}
+    {m, f, a} = mfa
+    call_pattern = "#{m}.#{f}/#{a}" |> String.replace("Elixir.", "")
+
+    ## We expect the number of trace messages to be twice the number of calls
+    ## (one for the function call, one for the return)
+    msg_num = 2 * length(times)
+    {:ok, _collector_pid} = Replbug.start(call_pattern, msgs: msg_num)
+
+    Enum.each(times, &TestUtils.run_for_time/1)
+    ## Give tracer a bit of time to catch remaining calls
+    :timer.sleep(50)
+    traces = Replbug.stop()
+    calls = Replbug.calls(traces)
+    durations = calls |> Map.get(mfa) |> Enum.map(& &1.duration)
+    total_count = Replbug.Utils.counts(calls) |> Map.get(mfa)
+    total_duration = Replbug.Utils.total_durations(calls) |> Map.get(mfa)
+
+    assert length(durations) == length(times)
+    assert total_count == length(times)
+    assert Enum.sum(durations) == total_duration
+
+    # See if the durations reported by tracer are close enough to :timer.tc stats
+    # While the number for individual calls could be different, the totals should be very close.
+    # Arbitrary value for the difference is 100 microseconds times the number of calls.
+    # This might still fail occasionally, in which case you should look at how much those numbers are off
+    # and decide if you should have doubts about either :timer.tc or the tracer :-)
+    diff_threshold = 100 * length(times)
+    assert abs(Enum.sum(timer_tcs) - Enum.sum(durations)) < diff_threshold
+  end
+end
+
+defmodule Replbug.TestUtils do
+  def run_for_time(time) do
+    :timer.sleep(time)
   end
 end
