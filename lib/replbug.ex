@@ -163,6 +163,11 @@ defmodule Replbug do
     }
   end
 
+  defp extract_trace_data(_unsupported_msg) do
+    %{trace_kind: :unsupported}
+  end
+
+
   defp to_time(%Rexbug.Printing.Timestamp{hours: h, minutes: m, seconds: s, us: us}) do
     Time.new!(h, m, s, us)
   end
