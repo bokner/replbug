@@ -6,6 +6,6 @@
   "makeup_elixir": {:hex, :makeup_elixir, "0.16.0", "f8c570a0d33f8039513fbccaf7108c5d750f47d8defd44088371191b76492b0b", [:mix], [{:makeup, "~> 1.0", [hex: :makeup, repo: "hexpm", optional: false]}, {:nimble_parsec, "~> 1.2.3", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm", "28b2cbdc13960a46ae9a8858c4bebdec3c9a6d7b4b9e7f4ed1502f8159f338e7"},
   "makeup_erlang": {:hex, :makeup_erlang, "0.1.1", "3fcb7f09eb9d98dc4d208f49cc955a34218fc41ff6b84df7c75b3e6e533cc65f", [:mix], [{:makeup, "~> 1.0", [hex: :makeup, repo: "hexpm", optional: false]}], "hexpm", "174d0809e98a4ef0b3309256cbf97101c6ec01c4ab0b23e926a9e17df2077cbb"},
   "nimble_parsec": {:hex, :nimble_parsec, "1.2.3", "244836e6e3f1200c7f30cb56733fd808744eca61fd182f731eac4af635cc6d0b", [:mix], [], "hexpm", "c8d789e39b9131acf7b99291e93dae60ab48ef14a7ee9d58c6964f59efb570b0"},
-  "redbug": {:hex, :redbug, "2.0.8", "b25f8534d751cec40ba3699986dcdb5953ab580bb5cad8b152bda905239da406", [:rebar3], [], "hexpm", "8c8176473ce9c8609dee085639ab9a657e4a663ebbb84ddd09f71454464d2957"},
+  "redbug": {:git, "git@github.com:bokner/redbug.git", "c73b3ff395fdcbcbfb47cf8d13465c2612a9705d", []},
   "rexbug": {:git, "git@github.com:bokner/rexbug.git", "18982504efa4b9c07f70ff70f2be17a8dcddaba3", []},
 }

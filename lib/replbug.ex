@@ -185,8 +185,8 @@ defmodule Replbug.Server do
     Process.flag(:trap_exit, true)
 
     case start_rexbug(trace_pattern, rexbug_opts) do
-      :ok ->
-        :erlang.monitor(:process, Process.whereis(:redbug))
+      {:ok, process_name} ->
+        :erlang.monitor(:process, Process.whereis(process_name))
         ## The state is a map of {process_pid, call_traces},
         {:ok, %{traces: Map.new()}}
 
@@ -228,9 +228,11 @@ defmodule Replbug.Server do
   end
 
   defp start_rexbug(trace_pattern, opts) do
-    case Rexbug.start(trace_pattern, opts) do
-      {proc_count, func_count} when is_integer(proc_count) and is_integer(func_count) ->
-        :ok
+    {:ok, options} = Rexbug.Translator.translate_options(opts)
+    {:ok, translated_pattern} = Rexbug.Translator.translate(trace_pattern)
+    case :redbug.start(translated_pattern, options) do
+      {process_name, proc_count, func_count} when is_integer(proc_count) and is_integer(func_count) ->
+        {:ok, process_name}
 
       error ->
         error
