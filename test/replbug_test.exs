@@ -96,11 +96,11 @@ defmodule ReplbugTest do
     :timer.sleep(50)
     :erlang.now()
     assert :erlang.whereis(:redbug) == :undefined
-    assert is_pid(:erlang.whereis(:redbug.redbug_name(Node.self)))
+    assert is_pid(:erlang.whereis(:redbug.redbug_name(Node.self())))
     :timer.sleep(50)
     traces = Replbug.stop()
     :timer.sleep(50)
-    assert :erlang.whereis(:redbug.redbug_name(Node.self)) == :undefined
+    assert :erlang.whereis(:redbug.redbug_name(Node.self())) == :undefined
     assert map_size(traces) == 1
     assert hd(Map.keys(Replbug.calls(traces))) == {:erlang, :now, 0}
   end

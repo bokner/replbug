@@ -53,8 +53,6 @@ defmodule Replbug.MixProject do
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:rexbug, git: "git@github.com:bokner/rexbug.git"},
       {:redbug, git: "git@github.com:bokner/redbug.git", override: true},
-      #{:redbug, path: "/Users/bokner/projects/redbug_dev", override: true},
-      #{:rexbug, path: "/Users/bokner/projects/rexbug_dev"},
       {:erlang_term, "~> 2.0"}
     ]
   end

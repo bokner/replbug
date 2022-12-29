@@ -167,7 +167,6 @@ defmodule Replbug do
     %{trace_kind: :unsupported}
   end
 
-
   defp to_time(%Rexbug.Printing.Timestamp{hours: h, minutes: m, seconds: s, us: us}) do
     Time.new!(h, m, s, us)
   end
@@ -230,8 +229,10 @@ defmodule Replbug.Server do
   defp start_rexbug(trace_pattern, opts) do
     {:ok, options} = Rexbug.Translator.translate_options(opts)
     {:ok, translated_pattern} = Rexbug.Translator.translate(trace_pattern)
+
     case :redbug.start(translated_pattern, options) do
-      {process_name, proc_count, func_count} when is_integer(proc_count) and is_integer(func_count) ->
+      {process_name, proc_count, func_count}
+      when is_integer(proc_count) and is_integer(func_count) ->
         {:ok, process_name}
 
       error ->
@@ -301,69 +302,5 @@ defmodule Replbug.Server do
 
   defp call_duration(return_rec, call_rec) do
     Time.diff(return_rec.return_timestamp, call_rec.call_timestamp, :microsecond)
-  end
-end
-
-defmodule Replbug.Utils do
-  def mfas(calls) do
-    Map.keys(calls)
-  end
-
-  def call_stats(calls, stats_fun) do
-    Map.new(calls, fn {mfa, mfa_calls} -> {mfa, stats_fun.(mfa_calls)} end)
-  end
-
-  def counts(calls) do
-    call_stats(calls, &length/1)
-  end
-
-  def total_durations(calls) do
-    call_stats(calls, &total_duration/1)
-  end
-
-  def max_durations(calls) do
-    call_stats(calls, &Enum.max/1)
-  end
-
-  def min_durations(calls) do
-    call_stats(calls, &Enum.min/1)
-  end
-
-  def average_durations(calls) do
-    call_stats(calls, fn mfa_calls ->
-      mfa_calls
-      |> total_duration()
-      |> Kernel./(length(mfa_calls))
-    end)
-  end
-
-  defp total_duration(calls) do
-    Enum.reduce(calls, 0, fn call, acc -> acc + call.duration end)
-  end
-
-  def arg_sizes(call) do
-    Enum.map(call.args, fn arg -> :erlang_term.byte_size(arg) end)
-  end
-
-  def return_size(call) do
-    :erlang_term.byte_size(call.return)
-  end
-
-  @spec collect_traces(:receive | :send | binary | maybe_improper_list, integer, keyword) :: %{
-          optional(pid) => list
-        }
-  @doc """
-        Collect the traces over the `time_interval` duration.
-        Note: it's a blocking call, use with care
-  """
-  def collect_traces(call_pattern, time_interval, opts \\ []) do
-    case Replbug.start(call_pattern, Keyword.put(opts, :time, time_interval)) do
-      {:ok, _pid} ->
-        Process.sleep(time_interval + 100)
-        Replbug.stop()
-
-      error ->
-        error
-    end
   end
 end
