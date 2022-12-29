@@ -18,7 +18,15 @@ defmodule Replbug do
   def start(trace_pattern, opts \\ []) do
     # Get preconfigured print_fun (either default one, or specified by the caller)
     preconfigured_print_fun =
-      Keyword.get(opts, :print_fun, fn t -> Rexbug.Printing.print_with_opts(t, opts) end)
+      Keyword.get(
+        opts,
+        :print_fun,
+        if Keyword.get(opts, :quiet, false) do
+          fn _x -> :ok end
+        else
+          fn t -> Rexbug.Printing.print_with_opts(t, opts) end
+        end
+      )
 
     print_fun = fn trace_record ->
       ## Call preconfigured print_fun, if any
@@ -230,7 +238,7 @@ defmodule Replbug.Server do
     {:ok, options} = Rexbug.Translator.translate_options(opts)
     {:ok, translated_pattern} = Rexbug.Translator.translate(trace_pattern)
 
-    case :redbug.start(translated_pattern, options) do
+    case :redbug.start(translated_pattern, redbug_options(options)) do
       {process_name, proc_count, func_count}
       when is_integer(proc_count) and is_integer(func_count) ->
         {:ok, process_name}
@@ -238,6 +246,10 @@ defmodule Replbug.Server do
       error ->
         error
     end
+  end
+
+  defp redbug_options(options) do
+    Keyword.drop(options, [:quiet])
   end
 
   defp calls_by_pid(traces) do
