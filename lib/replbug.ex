@@ -11,49 +11,24 @@ defmodule Replbug do
 
   require Logger
 
-  @trace_collector :trace_collector
-
   @spec start(:receive | :send | binary | maybe_improper_list, keyword) ::
           :ignore | {:error, any} | {:ok, pid}
   def start(trace_pattern, opts \\ []) do
-    # Get preconfigured print_fun (either default one, or specified by the caller)
-    preconfigured_print_fun =
-      Keyword.get(
-        opts,
-        :print_fun,
-        if Keyword.get(opts, :quiet, false) do
-          fn _x -> :ok end
-        else
-          fn t -> Rexbug.Printing.print_with_opts(t, opts) end
-        end
-      )
-
-    print_fun = fn trace_record ->
-      ## Call preconfigured print_fun, if any
-      preconfigured_print_fun && preconfigured_print_fun.(trace_record)
-      pid = Process.whereis(@trace_collector)
-      pid && send(pid, {:trace, parse_trace(trace_record)})
-    end
-
     trace_pattern
     |> add_return_opt()
-    |> create_call_collector(Keyword.put(opts, :print_fun, print_fun))
+    |> create_call_collector(opts)
   end
 
   @spec stop :: %{pid() => list(any())}
   @doc """
     Stop the collection and get the traces as a map of pid => trace_records
   """
-  def stop do
-    Rexbug.stop()
-
-    Process.whereis(@trace_collector) &&
-      GenServer.call(@trace_collector, :get_trace_data)
+  def stop() do
+    stop(Node.self())
   end
 
-  ## Get PIDs of all processes that made calls traced by Rexbug.
-  def get_caller_pids(trace) do
-    Map.keys(trace)
+  def stop(node) do
+    CollectorServer.stop(node)
   end
 
   @spec calls(traces :: %{pid() => list(any())}) :: %{mfa() => list(any())}
@@ -81,8 +56,8 @@ defmodule Replbug do
     apply(m, f, a)
   end
 
-  defp create_call_collector(call_pattern, rexbug_opts) do
-    GenServer.start(CollectorServer, [call_pattern, rexbug_opts], name: @trace_collector)
+  defp create_call_collector(call_pattern, opts) do
+    CollectorServer.start(call_pattern, opts)
   end
 
   ## Tracing for messages
@@ -105,6 +80,78 @@ defmodule Replbug do
 
   defp add_return_opt(call_pattern_list) when is_list(call_pattern_list) do
     Enum.map(call_pattern_list, fn pattern -> add_return_opt(pattern) end)
+  end
+end
+
+defmodule Replbug.Server do
+  @behaviour GenServer
+
+  require Logger
+  @trace_collector :trace_collector
+
+  # Callbacks
+  @impl true
+  @spec init([:receive | :send | binary | [:receive | :send | binary | {atom, any}], ...]) ::
+          {:ok, %{traces: %{}}} | {:stop, {atom | integer, any}}
+  def init([trace_pattern, opts] = _args) do
+    Process.flag(:trap_exit, true)
+    add_redbug_instance(trace_pattern, opts)
+  end
+
+  def start(call_pattern, opts) do
+    GenServer.start(__MODULE__, [call_pattern, opts], name: get_collector_name(opts[:target]))
+  end
+
+  def stop(node) do
+    collector_pid = get_collector_pid(node)
+
+    collector_pid &&
+      GenServer.call(collector_pid, :get_trace_data)
+  end
+
+  defp get_collector_pid(node) do
+    node
+    |> get_collector_name()
+    |> Process.whereis()
+  end
+
+  defp get_collector_name(nil) do
+    get_collector_name(Node.self())
+  end
+
+  defp get_collector_name(node) do
+    :erlang.binary_to_atom("#{@trace_collector}_#{node}")
+  end
+
+  defp add_redbug_instance(trace_pattern, opts) do
+    # Get preconfigured print_fun (either default one, or specified by the caller)
+    preconfigured_print_fun =
+      Keyword.get(
+        opts,
+        :print_fun,
+        if Keyword.get(opts, :quiet, false) do
+          fn _x -> :ok end
+        else
+          fn t -> Rexbug.Printing.print_with_opts(t, opts) end
+        end
+      )
+
+    print_fun = fn trace_record ->
+      ## Call preconfigured print_fun, if any
+      preconfigured_print_fun && preconfigured_print_fun.(trace_record)
+      collector_pid = get_collector_pid(opts[:target])
+      collector_pid && send(collector_pid, {:trace, parse_trace(trace_record)})
+    end
+
+    case start_redbug(trace_pattern, Keyword.put(opts, :print_fun, print_fun)) do
+      {:ok, process_name} ->
+        :erlang.monitor(:process, Process.whereis(process_name))
+        ## The state is a map of {process_pid, call_traces},
+        {:ok, %{traces: Map.new()}}
+
+      error ->
+        {:stop, error}
+    end
   end
 
   defp parse_trace(trace_record) do
@@ -178,35 +225,13 @@ defmodule Replbug do
   defp to_time(%Rexbug.Printing.Timestamp{hours: h, minutes: m, seconds: s, us: us}) do
     Time.new!(h, m, s, us)
   end
-end
-
-defmodule Replbug.Server do
-  @behaviour GenServer
-
-  require Logger
-  # Callbacks
-  @impl true
-  @spec init([:receive | :send | binary | [:receive | :send | binary | {atom, any}], ...]) ::
-          {:ok, %{traces: %{}}} | {:stop, {atom | integer, any}}
-  def init([trace_pattern, rexbug_opts] = _args) do
-    Process.flag(:trap_exit, true)
-
-    case start_rexbug(trace_pattern, rexbug_opts) do
-      {:ok, process_name} ->
-        :erlang.monitor(:process, Process.whereis(process_name))
-        ## The state is a map of {process_pid, call_traces},
-        {:ok, %{traces: Map.new()}}
-
-      error ->
-        {:stop, error}
-    end
-  end
 
   @impl true
   @spec handle_call(any, any, any) ::
           {:reply, {:unknown_message, any}, any}
           | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
+    Rexbug.stop()
     {:stop, :normal, calls_by_pid(state.traces), Map.put(state, :traces, Map.new())}
   end
 
@@ -234,7 +259,7 @@ defmodule Replbug.Server do
     {:noreply, state}
   end
 
-  defp start_rexbug(trace_pattern, opts) do
+  defp start_redbug(trace_pattern, opts) do
     {:ok, options} = Rexbug.Translator.translate_options(opts)
     {:ok, translated_pattern} = Rexbug.Translator.translate(trace_pattern)
 
