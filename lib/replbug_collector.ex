@@ -51,10 +51,12 @@ defmodule Replbug.Server do
         end
       )
 
+    trace_target = Keyword.get(opts, :target, Node.self())
+
     print_fun = fn trace_record ->
       ## Call preconfigured print_fun, if any
       preconfigured_print_fun && preconfigured_print_fun.(trace_record)
-      collector_pid = get_collector_pid(opts[:target])
+      collector_pid = get_collector_pid(trace_target)
       collector_pid && send(collector_pid, {:trace, parse_trace(trace_record)})
     end
 
@@ -62,7 +64,7 @@ defmodule Replbug.Server do
       {:ok, process_name} ->
         :erlang.monitor(:process, Process.whereis(process_name))
         ## The state is a map of {process_pid, call_traces},
-        {:ok, %{traces: Map.new()}}
+        {:ok, %{traces: Map.new(), target: trace_target}}
 
       error ->
         {:stop, error}
@@ -146,8 +148,8 @@ defmodule Replbug.Server do
           {:reply, {:unknown_message, any}, any}
           | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
-    Rexbug.stop()
-    {:stop, :normal, calls_by_pid(state.traces), Map.put(state, :traces, Map.new())}
+    :redbug.stop(state.target)
+    {:stop, :normal, calls_by_pid(state), Map.put(state, :traces, Map.new())}
   end
 
   def handle_call(unknown_message, _from, state) do
@@ -165,10 +167,10 @@ defmodule Replbug.Server do
     {:noreply, store_trace_message(trace_msg, state)}
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
     Logger.warn('''
-    The tracing has been completed. Use:
-      Replbug.stop to get the trace records into your shell.
+    The tracing on #{target_node} has been completed. Use:
+      Replbug.stop(#{target_node}) to get the trace records into your shell.
     ''')
 
     {:noreply, state}
@@ -192,13 +194,13 @@ defmodule Replbug.Server do
     Keyword.drop(options, [:quiet])
   end
 
-  defp calls_by_pid(traces) do
+  defp calls_by_pid(%{traces: traces, target: target_node} = _state) do
     Map.new(
       for {pid, {finished_calls, unfinished_calls}} <- traces do
         case length(unfinished_calls) do
           unfinished_count when unfinished_count > 0 ->
             Logger.warn("""
-            There are #{unfinished_count} unfinished calls in the trace.
+            There are #{unfinished_count} unfinished calls in the trace for #{target_node}.
             Some traced calls may still be in progress, and/or the number of trace messages has exceeded the value for :msgs option.
             """)
 

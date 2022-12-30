@@ -82,5 +82,3 @@ defmodule Replbug do
     Enum.map(call_pattern_list, fn pattern -> add_return_opt(pattern) end)
   end
 end
-
-
