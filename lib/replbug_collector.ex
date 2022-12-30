@@ -63,12 +63,10 @@ defmodule Replbug.Server do
     case start_redbug(trace_pattern, Keyword.put(opts, :print_fun, print_fun)) do
       {:ok, process_name} ->
         :erlang.monitor(:process, Process.whereis(process_name))
-        ## The state is a map of {process_pid, call_traces},
-        Logger.info("Started tracing on #{trace_target}")
+        ## The traces is a map of {process_pid, call_traces},
         {:ok, %{traces: Map.new(), target: trace_target}}
 
       error ->
-        Logger.error("Couldn't start tracing on #{trace_target} : #{inspect error}")
         {:stop, error}
     end
   end
