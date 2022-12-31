@@ -88,7 +88,7 @@ defmodule ReplbugTest do
     # This might still fail occasionally, in which case you should look at how much those numbers are off
     # and decide if you should have doubts about either :timer.tc or the tracer :-)
     diff_threshold = 100 * length(times)
-    assert abs(Enum.sum(timer_tcs) - Enum.sum(durations)) < diff_threshold
+    assert abs(Enum.sum(timer_tcs) - Enum.sum(durations)) <= diff_threshold
   end
 
   test "Replbug registers and uses a rexbug process with 'rexbug_<node>' name" do
