@@ -51,7 +51,7 @@ defmodule Replbug.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:rexbug, git: "git@github.com:bokner/rexbug.git"},
+      {:rexbug, "~> 1.0"},
       {:redbug, git: "git@github.com:bokner/redbug.git", override: true},
       {:erlang_term, "~> 2.0"}
     ]
