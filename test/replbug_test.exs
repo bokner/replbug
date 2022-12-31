@@ -59,15 +59,12 @@ defmodule ReplbugTest do
         tc
       end)
 
-    IO.inspect(timer_tcs)
     mfa = {Replbug.TestUtils, :run_for_time, 1}
-    {m, f, a} = mfa
-    call_pattern = "#{m}.#{f}/#{a}" |> String.replace("Elixir.", "")
 
     ## We expect the number of trace messages to be twice the number of calls
     ## (one for the function call, one for the return)
     msg_num = 2 * length(times)
-    {:ok, _collector_pid} = Replbug.start(call_pattern, msgs: msg_num)
+    {:ok, _collector_pid} = Replbug.start(mfa, msgs: msg_num)
 
     Enum.each(times, &TestUtils.run_for_time/1)
     ## Give tracer a bit of time to catch remaining calls

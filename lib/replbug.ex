@@ -15,7 +15,8 @@ defmodule Replbug do
           :ignore | {:error, any} | {:ok, pid}
   def start(trace_pattern, opts \\ []) do
     trace_pattern
-    |> add_return_opt()
+    |> pattern_to_redbug()
+    # |> add_return_opt()
     |> create_call_collector(opts)
   end
 
@@ -61,12 +62,33 @@ defmodule Replbug do
   end
 
   ## Tracing for messages
-  defp add_return_opt(trace_pattern) when trace_pattern in [:send, :receive] do
+  defp pattern_to_redbug(trace_pattern) when trace_pattern in [:send, :receive] do
     trace_pattern
   end
 
+  defp pattern_to_redbug({m, f, a}) do
+    "#{m}.#{f}/#{a}"
+    |> String.replace("Elixir.", "")
+    |> pattern_to_redbug()
+  end
+
+  defp pattern_to_redbug(function) when is_function(function) do
+    function
+    |> Function.info()
+    |> then(fn info ->
+      (info[:type] == :external && pattern_to_redbug({info[:module], info[:name], info[:arity]})) ||
+        throw({:error, :local_functions_not_supported})
+    end)
+  end
+
+  defp pattern_to_redbug(module) when is_atom(module) do
+    "#{module}"
+    |> String.replace("Elixir.", "")
+    |> pattern_to_redbug()
+  end
+
   ## Tracing for fun calls
-  defp add_return_opt(trace_pattern) when is_binary(trace_pattern) do
+  defp pattern_to_redbug(trace_pattern) when is_binary(trace_pattern) do
     ## Force `return` option
     case String.split(trace_pattern, ~r{::}, trim: true, include_captures: true) do
       [no_opts_call] ->
@@ -78,7 +100,7 @@ defmodule Replbug do
     end
   end
 
-  defp add_return_opt(call_pattern_list) when is_list(call_pattern_list) do
-    Enum.map(call_pattern_list, fn pattern -> add_return_opt(pattern) end)
+  defp pattern_to_redbug(call_pattern_list) when is_list(call_pattern_list) do
+    Enum.map(call_pattern_list, fn pattern -> pattern_to_redbug(pattern) end)
   end
 end
