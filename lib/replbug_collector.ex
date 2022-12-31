@@ -47,7 +47,7 @@ defmodule Replbug.Server do
         if Keyword.get(opts, :quiet, false) do
           fn _x -> :ok end
         else
-          fn t -> Rexbug.Printing.print_with_opts(t, opts) end
+          fn t -> default_print(t, opts) end
         end
       )
 
@@ -57,7 +57,7 @@ defmodule Replbug.Server do
       ## Call preconfigured print_fun, if any
       preconfigured_print_fun && preconfigured_print_fun.(trace_record)
       collector_pid = get_collector_pid(trace_target)
-      collector_pid && send(collector_pid, {:trace, parse_trace(trace_record)})
+      collector_pid && send(collector_pid, parse_trace(trace_record))
     end
 
     case start_redbug(trace_pattern, Keyword.put(opts, :print_fun, print_fun)) do
@@ -71,10 +71,21 @@ defmodule Replbug.Server do
     end
   end
 
+  defp default_print(trace_record, opts) do
+    unless :erlang.element(1, trace_record) in [:meta] do
+      Rexbug.Printing.print_with_opts(trace_record, opts)
+    end
+  end
+
+  defp parse_trace({:meta, :stop, :dummy, {0, 0, 0, 0}}) do
+    :redbug_stopping
+  end
+
   defp parse_trace(trace_record) do
-    trace_record
-    |> Rexbug.Printing.from_erl()
-    |> extract_trace_data()
+    {:trace,
+     trace_record
+     |> Rexbug.Printing.from_erl()
+     |> extract_trace_data()}
   end
 
   defp extract_trace_data(
@@ -163,6 +174,11 @@ defmodule Replbug.Server do
   end
 
   @impl true
+  def handle_info(:redbug_stopping, state) do
+    Logger.warn("redbug on #{state.target} is stopping...")
+    {:noreply, state}
+  end
+
   def handle_info({:trace, trace_msg}, state) do
     {:noreply, store_trace_message(trace_msg, state)}
   end
@@ -170,7 +186,7 @@ defmodule Replbug.Server do
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
     Logger.warn('''
     The tracing on #{target_node} has been completed. Use:
-      Replbug.stop(#{target_node}) to get the trace records into your shell.
+      Replbug.stop(:\"#{target_node}\") to get the trace records into your shell.
     ''')
 
     {:noreply, state}
