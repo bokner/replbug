@@ -18,8 +18,8 @@ defmodule Replbug.Server do
   end
 
   def stop(node) do
+    :redbug.stop(node)
     collector_pid = get_collector_pid(node)
-
     collector_pid &&
       GenServer.call(collector_pid, :get_trace_data)
   end
@@ -159,7 +159,6 @@ defmodule Replbug.Server do
           {:reply, {:unknown_message, any}, any}
           | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
-    :redbug.stop(state.target)
     {:stop, :normal, calls_by_pid(state), Map.put(state, :traces, Map.new())}
   end
 
