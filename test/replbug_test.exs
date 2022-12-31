@@ -51,7 +51,7 @@ defmodule ReplbugTest do
   end
 
   test "Verifies call stats" do
-    times = [100, 100, 500, 250, 50, 100, 300]
+    times = [100, 100, 500, 250, 50, 100, 300, 70, 50, 30]
 
     timer_tcs =
       Enum.map(times, fn time ->
