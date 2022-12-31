@@ -44,7 +44,7 @@ defmodule Replbug.Server do
       Keyword.get(
         opts,
         :print_fun,
-        if Keyword.get(opts, :quiet, false) do
+        if Keyword.get(opts, :silent, false) do
           fn _x -> :ok end
         else
           fn t -> default_print(t, opts) end
@@ -207,7 +207,7 @@ defmodule Replbug.Server do
   end
 
   defp redbug_options(options) do
-    Keyword.drop(options, [:quiet])
+    Keyword.drop(options, [:silent])
   end
 
   defp calls_by_pid(%{traces: traces, target: target_node} = _state) do
