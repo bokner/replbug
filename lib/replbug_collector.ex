@@ -183,9 +183,15 @@ defmodule Replbug.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
+    nodename =
+      if target_node == Node.self do
+        ""
+      else
+        ":\"#{target_node}\""
+      end
     Logger.warn('''
     The tracing on #{target_node} has been completed. Use:
-      Replbug.stop(:\"#{target_node}\") to get the trace records into your shell.
+      Replbug.stop(#{nodename}) to get the trace records into your shell.
     ''')
 
     {:noreply, state}
