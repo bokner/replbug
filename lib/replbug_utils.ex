@@ -29,6 +29,23 @@ defmodule Replbug.Utils do
     call_stats(calls, &average_duration/1)
   end
 
+  def max_args(calls) when is_map(calls) do
+    call_stats(calls, fn mfa_calls ->
+      Enum.max_by(
+        mfa_calls,
+        fn call ->
+          Enum.max(arg_sizes(call))
+        end
+      )
+    end)
+  end
+
+  def max_returns(calls) when is_map(calls) do
+    call_stats(calls, fn mfa_calls ->
+      Enum.max_by(mfa_calls, &return_size/1)
+    end)
+  end
+
   def summary(calls) when is_map(calls) do
     call_stats(calls, &mfa_summary/1)
   end
@@ -65,11 +82,11 @@ defmodule Replbug.Utils do
     }
   end
 
-  def arg_sizes(call) do
+  defp arg_sizes(call) do
     Enum.map(call.args, fn arg -> :erlang_term.byte_size(arg) end)
   end
 
-  def return_size(call) do
+  defp return_size(call) do
     :erlang_term.byte_size(call.return)
   end
 

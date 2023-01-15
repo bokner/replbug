@@ -20,6 +20,7 @@ defmodule Replbug.Server do
   def stop(node) do
     :redbug.stop(node)
     collector_pid = get_collector_pid(node)
+
     collector_pid &&
       GenServer.call(collector_pid, :get_trace_data)
   end
@@ -184,11 +185,12 @@ defmodule Replbug.Server do
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
     nodename =
-      if target_node == Node.self do
+      if target_node == Node.self() do
         ""
       else
         ":\"#{target_node}\""
       end
+
     Logger.warn('''
     The tracing on #{target_node} has been completed. Use:
       Replbug.stop(#{nodename}) to get the trace records into your shell.
