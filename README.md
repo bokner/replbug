@@ -17,7 +17,7 @@ end
 
 ## Motivation
 
-The Erlang Trace BIFs allow to trace Erlang code on live systems.
+The Erlang Trace BIFs allow to trace Erlang function calls, process messages and other events on live systems.
 
 [Rexbug](https://github.com/nietaki/rexbug) displays and/or writes to external files the trace messages emitted by Erlang VM in human-readable format. In many cases, this would be sufficient for the purposes of debugging the code. However, if the size and/or number of tracing messages is large, it becomes more difficult to make sense of what's going on just by visually checking the tracing output.
 
@@ -66,8 +66,8 @@ iex(4)> Map.keys(traces)
 ## These are the processes that made the calls
 ## Get the list of calls across all processes
 iex(5)> calls = Replbug.calls(traces)
-## What calls were traced?
-iex(6)> Map.keys(calls)              
+## What calls were traced (shows the list of {Module, Function, Arity} tuples)?
+iex(6)> Replbug.Utils.mfas(calls)
 [{Phoenix.LiveView.Plug, :call, 2}]
 ## yeah, that's the one we traced...
 ## Get the call records (args, returns etc.)
@@ -82,10 +82,10 @@ iex(10)> List.keyfind(arg1.req_headers, "user-agent", 0)
 {"user-agent",
  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36"}
 ## What are durations of the calls?
-iex(11)> durations = Enum.map(calls, & &1.duration)
+iex(11)> durations = Enum.map(call_data, & &1.duration)
 [9411, 13954]
 ## Let's look at the return of the first call.
-iex(12) > return = call_data.return
+iex(12) > return = hd(call_data).return
 ## We expect it to be a Plug.Conn struct as well...
 iex(13) > is_struct(return, Plug.Conn)
 true
