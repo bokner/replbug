@@ -89,9 +89,10 @@ defmodule ReplbugTest do
   end
 
   test "Replbug registers and uses a rexbug process with 'rexbug_<node>' name" do
-    Replbug.start(":erlang.now/0")
+    Replbug.start(":erlang.system_time/0")
     :timer.sleep(50)
-    :erlang.now()
+    ## Trigger the trace
+    :erlang.system_time()
     assert :erlang.whereis(:redbug) == :undefined
     assert is_pid(:erlang.whereis(:redbug.redbug_name(Node.self())))
     :timer.sleep(50)
@@ -99,7 +100,7 @@ defmodule ReplbugTest do
     :timer.sleep(50)
     assert :erlang.whereis(:redbug.redbug_name(Node.self())) == :undefined
     assert map_size(traces) == 1
-    assert hd(Map.keys(Replbug.calls(traces))) == {:erlang, :now, 0}
+    assert hd(Map.keys(Replbug.calls(traces))) == {:erlang, :system_time, 0}
   end
 end
 
