@@ -53,8 +53,14 @@ defmodule Replbug do
   """
   @spec replay(%{:args => list, :function => atom, :module => atom | tuple, optional(any) => any}) ::
           any
-  def replay(%{function: f, module: m, args: a} = _call_record) do
-    apply(m, f, a)
+  def replay(%{function: f, module: m, args: a, caller_pid: pid} = _call_record, timeout \\ 5_000) do
+    caller_node = node(pid)
+    if caller_node == Node.self() do
+        apply(m, f, a)
+    else
+      :erpc.call(caller_node, m, f, a, timeout)
+    end
+
   end
 
   defp create_call_collector(call_pattern, opts) do
