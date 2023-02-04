@@ -32,14 +32,17 @@ defmodule Replbug do
     CollectorServer.stop(node)
   end
 
-  @spec calls(traces :: %{pid() => list(any())}) :: %{mfa() => list(any())}
+  @spec calls(traces :: %{pid() => Map.t()}) :: %{mfa() => list(any())}
   @doc """
   Group the trace by function calls (MFA).
   """
 
-  def calls(trace) do
+  def calls(trace, finished \\ true) do
     trace
     |> Map.values()
+    |> Enum.map(fn pid_calls ->
+      (finished && pid_calls.finished_calls) || pid_calls.unfinished_calls
+    end)
     |> List.flatten()
     |> Enum.group_by(fn trace_rec ->
       {trace_rec.module, trace_rec.function, length(trace_rec.args)}
@@ -47,7 +50,7 @@ defmodule Replbug do
   end
 
   @doc """
-  Repeat the call with the same arguments, for instance, after you've applied the changes to the code and reloaded the module.
+  Repeat the call with the same arguments.
   Use replay/1 with caution in prod!
   Also, it may not work as expected due to changes happened in between the initial call and the time of replay.
   """
