@@ -184,19 +184,26 @@ defmodule Replbug.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
-    nodename =
-      if target_node == Node.self() do
-        ""
-      else
-        ":\"#{target_node}\""
-      end
+    Logger.warn("The tracing on #{target_node} has been completed.")
 
-    Logger.warn('''
-    The tracing on #{target_node} has been completed. Use:
-      Replbug.stop(#{nodename}) to get the trace records into your shell.
-    ''')
+    if no_traces(state) do
+      Logger.warn("No traces were collected.")
+      {:stop, :normal, state}
+    else
+      nodename =
+        if target_node == Node.self() do
+          ""
+        else
+          ":\"#{target_node}\""
+        end
 
-    {:noreply, state}
+      Logger.warn('''
+      Use:
+        Replbug.stop(#{nodename}) to get the trace records into your shell.
+      ''')
+
+      {:noreply, state}
+    end
   end
 
   defp start_redbug(trace_pattern, opts) do
@@ -279,5 +286,9 @@ defmodule Replbug.Server do
 
   defp call_duration(return_rec, call_rec) do
     Time.diff(return_rec.return_timestamp, call_rec.call_timestamp, :microsecond)
+  end
+
+  defp no_traces(state) do
+    map_size(Map.get(state, :traces)) == 0
   end
 end

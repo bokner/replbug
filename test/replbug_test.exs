@@ -102,6 +102,12 @@ defmodule ReplbugTest do
     assert map_size(traces) == 1
     assert hd(Map.keys(Replbug.calls(traces))) == {:erlang, :system_time, 0}
   end
+
+  test "Immediately stops if no traces were collected" do
+    Replbug.start(":erlang.system_time/0", time: 100)
+    :timer.sleep(500)
+    refute Replbug.stop()
+  end
 end
 
 defmodule Replbug.TestUtils do
