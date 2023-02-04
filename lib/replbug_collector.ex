@@ -230,7 +230,7 @@ defmodule Replbug.Server do
         case length(unfinished_calls) do
           unfinished_count when unfinished_count > 0 ->
             Logger.warn("""
-            There are #{unfinished_count} unfinished calls in the trace for #{target_node}.
+            There #{(unfinished_count == 1 && "is") || "are"} #{unfinished_count} unfinished calls in the trace for #{target_node}.
             Some traced calls may still be in progress, and/or the number of trace messages has exceeded the value for :msgs option.
             """)
 
@@ -238,7 +238,7 @@ defmodule Replbug.Server do
             :ok
         end
 
-        {pid, Enum.reverse(finished_calls)}
+        {pid, %{finished_calls: finished_calls, unfinished_calls: unfinished_calls}}
       end
     )
   end
