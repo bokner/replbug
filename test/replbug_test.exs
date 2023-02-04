@@ -108,6 +108,19 @@ defmodule ReplbugTest do
     :timer.sleep(500)
     refute Replbug.stop()
   end
+
+  test "Unfinished calls" do
+    ## Force call trace without return (by allowing only 1 trace message)
+    {:ok, _pid} = Replbug.start(":erlang.system_time/0", msgs: 1)
+    :timer.sleep(500)
+    ## Trigger the trace
+    :erlang.system_time()
+    :timer.sleep(500)
+    traces = Replbug.stop()
+
+    unfinished_calls = traces |> Replbug.calls(false)
+    assert map_size(unfinished_calls) == 1
+  end
 end
 
 defmodule Replbug.TestUtils do
