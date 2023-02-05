@@ -313,6 +313,7 @@ defmodule Replbug.Server do
   defp set_call_durations([], _state) do
     []
   end
+
   defp set_call_durations(calls, %{local_completion_ts: local_completion_ts, lag: lag} = _state) do
     node_trace_completion_ts = Time.add(local_completion_ts,  -lag, :microsecond)
     Enum.map(calls, fn call -> unfinished_call_duration(call, node_trace_completion_ts) end)
@@ -321,6 +322,6 @@ defmodule Replbug.Server do
   defp unfinished_call_duration(call, trace_completion_ts) do
     call
     |> Map.put(:trace_completion_ts, trace_completion_ts)
-    |> Map.put(:duration, Time.diff(trace_completion_ts, call.call_timestamp, :microsecond))
+    |> Map.put(:estimated_duration, max(0, Time.diff(trace_completion_ts, call.call_timestamp, :microsecond)))
   end
 end
