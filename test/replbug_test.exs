@@ -104,8 +104,9 @@ defmodule ReplbugTest do
   end
 
   test "Immediately stops if no traces were collected" do
-    Replbug.start(":erlang.system_time/0", time: 100)
+    {:ok, pid} = Replbug.start(":erlang.system_time/0", time: 100)
     :timer.sleep(500)
+    refute :erlang.is_process_alive(pid)
     refute Replbug.stop()
   end
 
