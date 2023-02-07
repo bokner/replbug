@@ -3,6 +3,7 @@ defmodule Replbug.Server do
 
   require Logger
   @trace_collector :trace_collector
+  @local_completion_ts :local_completion_ts
 
   # Callbacks
   @impl true
@@ -64,8 +65,8 @@ defmodule Replbug.Server do
     case start_redbug(trace_pattern, Keyword.put(opts, :print_fun, print_fun)) do
       {:ok, process_name} ->
         :erlang.monitor(:process, Process.whereis(process_name))
-        ## The traces is a map of {process_pid, call_traces},
-        {:ok, %{traces: Map.new(), target: trace_target}}
+        ## 'traces' is a map of {process_pid, call_traces},
+        {:ok, %{traces: Map.new(), target: trace_target, lag: lag(trace_target)}}
 
       error ->
         {:stop, error}
@@ -160,7 +161,8 @@ defmodule Replbug.Server do
           {:reply, {:unknown_message, any}, any}
           | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
-    {:stop, :normal, calls_by_pid(state), Map.put(state, :traces, Map.new())}
+
+    {:stop, :normal, calls_by_pid(maybe_update_completion_ts(state)), Map.put(state, :traces, Map.new())}
   end
 
   def handle_call(unknown_message, _from, state) do
@@ -184,6 +186,7 @@ defmodule Replbug.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
+    local_completion_ts = Time.utc_now()
     Logger.warn("The tracing on #{target_node} has been completed.")
 
     if no_traces(state) do
@@ -202,7 +205,7 @@ defmodule Replbug.Server do
         Replbug.stop(#{nodename}) to get the trace records into your shell.
       ''')
 
-      {:noreply, state}
+      {:noreply, Map.put(state, @local_completion_ts, local_completion_ts)}
     end
   end
 
@@ -224,13 +227,13 @@ defmodule Replbug.Server do
     Keyword.drop(options, [:silent])
   end
 
-  defp calls_by_pid(%{traces: traces, target: target_node} = _state) do
+  defp calls_by_pid(%{traces: traces, target: target_node} = state) do
     Map.new(
       for {pid, {finished_calls, unfinished_calls}} <- traces do
         case length(unfinished_calls) do
           unfinished_count when unfinished_count > 0 ->
             Logger.warn("""
-            There #{(unfinished_count == 1 && "is") || "are"} #{unfinished_count} unfinished calls in the trace for #{target_node}.
+            There #{(unfinished_count == 1 && "is") || "are"} #{unfinished_count} unfinished call(s) in the trace for #{target_node}.
             Some traced calls may still be in progress, and/or the number of trace messages has exceeded the value for :msgs option.
             """)
 
@@ -238,7 +241,7 @@ defmodule Replbug.Server do
             :ok
         end
 
-        {pid, %{finished_calls: finished_calls, unfinished_calls: unfinished_calls}}
+        {pid, %{finished_calls: finished_calls, unfinished_calls: set_call_durations(unfinished_calls, state)}}
       end
     )
   end
@@ -290,5 +293,35 @@ defmodule Replbug.Server do
 
   defp no_traces(state) do
     map_size(Map.get(state, :traces)) == 0
+  end
+
+  ## Measures (approximate) time lag between local and remote node
+  def lag(node) do
+    #node == Node.self() && 0 ||
+    (
+      start_time = :erlang.system_time(:microsecond)
+      node_time = :erpc.call(node, :erlang, :system_time, [:microsecond])
+      end_time = :erlang.system_time(:microsecond)
+      end_time - node_time - div(end_time - start_time, 2)
+    )
+  end
+
+  defp maybe_update_completion_ts(state) do
+    Map.has_key?(state, @local_completion_ts) && state || Map.put(state, @local_completion_ts, Time.utc_now())
+  end
+
+  defp set_call_durations([], _state) do
+    []
+  end
+
+  defp set_call_durations(calls, %{local_completion_ts: local_completion_ts, lag: lag} = _state) do
+    node_trace_completion_ts = Time.add(local_completion_ts,  -lag, :microsecond)
+    Enum.map(calls, fn call -> unfinished_call_duration(call, node_trace_completion_ts) end)
+  end
+
+  defp unfinished_call_duration(call, trace_completion_ts) do
+    call
+    |> Map.put(:trace_completion_ts, trace_completion_ts)
+    |> Map.put(:estimated_duration, max(0, Time.diff(trace_completion_ts, call.call_timestamp, :microsecond)))
   end
 end

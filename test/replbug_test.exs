@@ -121,6 +121,9 @@ defmodule ReplbugTest do
 
     unfinished_calls = traces |> Replbug.calls(false)
     assert map_size(unfinished_calls) == 1
+    call = hd(Map.get(unfinished_calls, {:erlang, :system_time, 0}))
+    assert Map.has_key?(call, :duration)
+    IO.inspect(call)
   end
 end
 
