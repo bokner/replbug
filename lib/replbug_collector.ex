@@ -161,8 +161,8 @@ defmodule Replbug.Server do
           {:reply, {:unknown_message, any}, any}
           | {:stop, :normal, map, %{:traces => %{}, optional(any) => any}}
   def handle_call(:get_trace_data, _from, state) do
-
-    {:stop, :normal, calls_by_pid(maybe_update_completion_ts(state)), Map.put(state, :traces, Map.new())}
+    {:stop, :normal, calls_by_pid(maybe_update_completion_ts(state)),
+     Map.put(state, :traces, Map.new())}
   end
 
   def handle_call(unknown_message, _from, state) do
@@ -241,7 +241,11 @@ defmodule Replbug.Server do
             :ok
         end
 
-        {pid, %{finished_calls: finished_calls, unfinished_calls: set_call_durations(unfinished_calls, state)}}
+        {pid,
+         %{
+           finished_calls: finished_calls,
+           unfinished_calls: set_call_durations(unfinished_calls, state)
+         }}
       end
     )
   end
@@ -297,17 +301,16 @@ defmodule Replbug.Server do
 
   ## Measures (approximate) time lag between local and remote node
   def lag(node) do
-    #node == Node.self() && 0 ||
-    (
-      start_time = :erlang.system_time(:microsecond)
-      node_time = :erpc.call(node, :erlang, :system_time, [:microsecond])
-      end_time = :erlang.system_time(:microsecond)
-      end_time - node_time - div(end_time - start_time, 2)
-    )
+    # node == Node.self() && 0 ||
+    start_time = :erlang.system_time(:microsecond)
+    node_time = :erpc.call(node, :erlang, :system_time, [:microsecond])
+    end_time = :erlang.system_time(:microsecond)
+    end_time - node_time - div(end_time - start_time, 2)
   end
 
   defp maybe_update_completion_ts(state) do
-    Map.has_key?(state, @local_completion_ts) && state || Map.put(state, @local_completion_ts, Time.utc_now())
+    (Map.has_key?(state, @local_completion_ts) && state) ||
+      Map.put(state, @local_completion_ts, Time.utc_now())
   end
 
   defp set_call_durations([], _state) do
@@ -315,13 +318,16 @@ defmodule Replbug.Server do
   end
 
   defp set_call_durations(calls, %{local_completion_ts: local_completion_ts, lag: lag} = _state) do
-    node_trace_completion_ts = Time.add(local_completion_ts,  -lag, :microsecond)
+    node_trace_completion_ts = Time.add(local_completion_ts, -lag, :microsecond)
     Enum.map(calls, fn call -> unfinished_call_duration(call, node_trace_completion_ts) end)
   end
 
   defp unfinished_call_duration(call, trace_completion_ts) do
     call
     |> Map.put(:trace_completion_ts, trace_completion_ts)
-    |> Map.put(:estimated_duration, max(0, Time.diff(trace_completion_ts, call.call_timestamp, :microsecond)))
+    |> Map.put(
+      :estimated_duration,
+      max(0, Time.diff(trace_completion_ts, call.call_timestamp, :microsecond))
+    )
   end
 end
