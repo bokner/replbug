@@ -177,7 +177,7 @@ defmodule Replbug.Server do
 
   @impl true
   def handle_info(:redbug_stopping, state) do
-    Logger.warn("redbug on #{state.target} is stopping...")
+    Logger.warning("redbug on #{state.target} is stopping...")
     {:noreply, state}
   end
 
@@ -187,10 +187,10 @@ defmodule Replbug.Server do
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, %{target: target_node} = state) do
     local_completion_ts = Time.utc_now()
-    Logger.warn("The tracing on #{target_node} has been completed.")
+    Logger.warning("The tracing on #{target_node} has been completed.")
 
     if no_traces(state) do
-      Logger.warn("No traces were collected.")
+      Logger.warning("No traces were collected.")
       {:stop, :normal, state}
     else
       nodename =
@@ -200,7 +200,7 @@ defmodule Replbug.Server do
           ":\"#{target_node}\""
         end
 
-      Logger.warn('''
+      Logger.warning('''
       Use:
         Replbug.stop(#{nodename}) to get the trace records into your shell.
       ''')
@@ -232,7 +232,7 @@ defmodule Replbug.Server do
       for {pid, {finished_calls, unfinished_calls}} <- traces do
         case length(unfinished_calls) do
           unfinished_count when unfinished_count > 0 ->
-            Logger.warn("""
+            Logger.warning("""
             There #{(unfinished_count == 1 && "is") || "are"} #{unfinished_count} unfinished call(s) in the trace for #{target_node}.
             Some traced calls may still be in progress, and/or the number of trace messages has exceeded the value for :msgs option.
             """)

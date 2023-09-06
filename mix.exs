@@ -5,7 +5,7 @@ defmodule Replbug.MixProject do
     [
       app: :replbug,
       version: "1.0.1",
-      elixir: "~> 1.13",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
@@ -51,8 +51,7 @@ defmodule Replbug.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:rexbug, "~> 1.0"},
-      {:redbug, git: "git@github.com:massemanet/redbug.git", override: true},
+      {:redbug_clone, "~> 2.0.7", app: false},
       {:erlang_term, "~> 2.0"}
     ]
   end
